@@ -20,7 +20,8 @@ def print_result(string, timestamp):
     global msg_debounce
     if msg_debounce != string:
         if timestamp:
-            print(string + "," + datetime.datetime.now().strftime("%FT%T.%f")[:-4] + "Z")
+            print(string + "," +
+                  datetime.datetime.now().strftime("%FT%T.%f")[:-4] + "Z")
         else:
             print(string)
         msg_debounce = string
@@ -96,10 +97,14 @@ def main():
                                                  '[Left, Right, Case (Buds+)]')
     parser.add_argument('mac', metavar='mac-address', type=str, nargs=1,
                         help='MAC-Address of your Buds')
-    parser.add_argument('-m', '--monitor', action='store_true', help="Notify on change")
-    parser.add_argument('-t', '--monitor-timestamp', action='store_true', help="Notify on change and print timestamps")
-    parser.add_argument('-w', '--wearing-status', action='store_true', help="Print wearing status instead")
-    parser.add_argument('-v', '--verbose', action='store_true', help="Print debug information")
+    parser.add_argument('-m', '--monitor',
+                        action='store_true', help="Notify on change")
+    parser.add_argument('-t', '--monitor-timestamp', action='store_true',
+                        help="Notify on change and print timestamps")
+    parser.add_argument('-w', '--wearing-status',
+                        action='store_true', help="Print wearing status instead")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help="Print debug information")
     args = parser.parse_args()
 
     verbose = args.verbose
@@ -109,14 +114,29 @@ def main():
 
     device_name = str(bluetooth.lookup_name(args.mac[0]))
     isplus = "Buds Live" in device_name or "Buds+" in device_name
+    isbuds2 = "Buds2" in device_name
+
+    uuidDictionary = {
+        "buds": "00001101-0000-1000-8000-00805F9B34FB",
+        "budsPlus": "00001102-0000-1000-8000-00805f9b34fd",
+        "buds2": "00001103-0000-1000-8000-00805F9B34FB"
+    }
+
+    if not isplus or not isbuds2:
+        uuid = uuidDictionary["buds"]
+    elif isplus:
+        uuid = uuidDictionary["budsPlus"]
+    elif isbuds2:
+        uuid = uuidDictionary["buds2"]
 
     if verbose:
         print(device_name)
 
     if verbose:
         print("Searching for the RFCOMM interface...")
-    uuid = ("00001101-0000-1000-8000-00805F9B34FB" if isplus else "00001102-0000-1000-8000-00805f9b34fd")
-    service_matches = bluetooth.find_service(uuid=uuid, address=str(args.mac[0]))
+
+    service_matches = bluetooth.find_service(
+        uuid=uuid, address=str(args.mac[0]))
 
     if len(service_matches) == 0:
         print("Couldn't find the proprietary RFCOMM service")
@@ -139,9 +159,11 @@ def main():
             if len(data) == 0:
                 break
             if args.wearing_status:
-                success = parse_message_wear_status(data, isplus, args.monitor_timestamp)
+                success = parse_message_wear_status(
+                    data, isplus or isbuds2, args.monitor_timestamp)
             else:
-                success = parse_message(data, isplus, args.monitor_timestamp)
+                success = parse_message(
+                    data, isplus or isbuds2, args.monitor_timestamp)
 
             if success and not args.monitor and not args.monitor_timestamp:
                 exit(0)
